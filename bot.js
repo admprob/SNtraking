@@ -25,7 +25,7 @@ bot.onText(/\/menu/, (msg) => {
 });
 
 // 🔹 MENYIMPAN RIWAYAT SERIAL NUMBER (Tanpa menampilkan menu setiap kali)
-bot.onText(/\/serial (\d+) (\d+)/, (msg, match) => {
+bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const start = parseInt(match[1]);
     const end = parseInt(match[2]);
