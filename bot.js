@@ -23,6 +23,19 @@ bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
 });
 
+bot.on("callback_query", (query) => {
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    if (data === "view_history") {
+        // Logika untuk melihat riwayat
+    } else if (data === "export_csv") {
+        // Logika untuk mengekspor riwayat ke CSV
+    } else if (data === "filter_by_date") {
+        // Logika untuk memfilter riwayat berdasarkan tanggal
+    }
+});
+
 // 📌 Perintah untuk mendapatkan serial (Bisa Rentang atau Manual)
 bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
