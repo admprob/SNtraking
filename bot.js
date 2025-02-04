@@ -18,25 +18,60 @@ const mainMenu = {
     }
 };
 
-// 🔹 Menampilkan menu saat diminta
+// Menampilkan menu saat perintah /menu diterima
 bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
 });
 
+// Penanganan callback_query
 bot.on("callback_query", (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
     if (data === "view_history") {
         // Logika untuk melihat riwayat
+        if (history.length === 0) {
+            bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
+        } else {
+            // Buat daftar tombol untuk setiap riwayat
+            const options = {
+                reply_markup: {
+                    inline_keyboard: history.map((record, index) => [
+                        [{
+                            text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
+                            callback_data: `history_${index}`
+                        }]
+                    ])
+                }
+            };
+            bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
+        }
+    } else if (data.startsWith("history_")) {
+        const index = parseInt(data.split("_")[1]);
+        if (history[index]) {
+            const record = history[index];
+            const serialsList = record.serials.join("\n");
+            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${serialsList}`);
+        } else {
+            bot.sendMessage(chatId, "⚠️ Riwayat tidak ditemukan.");
+        }
     } else if (data === "export_csv") {
         // Logika untuk mengekspor riwayat ke CSV
+        if (history.length === 0) {
+            bot.sendMessage(chatId, "📌 Belum ada riwayat untuk diekspor.");
+        } else {
+            const csvContent = history.map(record => `${record.user},${record.date},${record.serials.join(";")}`).join("\n");
+            const filePath = "./history.csv";
+            fs.writeFileSync(filePath, csvContent);
+            bot.sendDocument(chatId, filePath, {}, { filename: "history.csv" });
+        }
     } else if (data === "filter_by_date") {
         // Logika untuk memfilter riwayat berdasarkan tanggal
+        bot.sendMessage(chatId, "📅 Fitur ini belum diimplementasikan.");
     }
 });
 
-// 📌 Perintah untuk mendapatkan serial (Bisa Rentang atau Manual)
+// Perintah untuk mendapatkan serial (Bisa Rentang atau Manual)
 bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const input = match[1].trim();
@@ -86,48 +121,7 @@ bot.onText(/\/sn (.+)/, (msg, match) => {
     bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
-// 📌 Perintah untuk melihat daftar riwayat
-bot.onText(/\/history/, (msg) => {
-    const chatId = msg.chat.id;
-
-    if (history.length === 0) {
-        return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
-    }
-
-    // Buat daftar tombol untuk setiap riwayat
-    let options = {
-        reply_markup: {
-            inline_keyboard: history.map((record, index) => {
-                if (record.serials.length === 0) return []; // Hindari error jika kosong
-                return [{
-                    text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
-                    callback_data: `history_${index}`
-                }];
-            }).filter(row => row.length > 0) // Hapus baris kosong untuk menghindari error
-        }
-    };
-
-    bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
-});
-
-// 📌 Fungsi untuk menampilkan detail saat tombol riwayat ditekan
-bot.on("callback_query", (query) => {
-    const chatId = query.message.chat.id;
-    const data = query.data;
-
-    if (data.startsWith("history_")) {
-        const index = parseInt(data.split("_")[1]);
-        if (history[index]) {
-            const record = history[index];
-            const serialsList = record.serials.join("\n");
-            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${serialsList}`);
-        } else {
-            bot.sendMessage(chatId, "⚠️ Riwayat tidak ditemukan.");
-        }
-    }
-});
-
-// 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
+// Fungsi untuk memformat tanggal agar lebih mudah dibaca
 function formatDate(dateString) {
     const date = new Date(dateString);
     return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)} ` +
