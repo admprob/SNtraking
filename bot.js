@@ -7,22 +7,6 @@ const bot = new TelegramBot(token, { polling: true });
 
 const history = []; // Simpan riwayat permintaan
 
-// Menu utama
-const mainMenu = {
-    reply_markup: {
-        inline_keyboard: [
-            [{ text: "📜 Melihat Riwayat", callback_data: "view_history" }],
-            [{ text: "📤 Mengekspor Riwayat ke CSV", callback_data: "export_csv" }],
-            [{ text: "📅 Melihat Riwayat Berdasarkan Tanggal", callback_data: "filter_by_date" }]
-        ]
-    }
-};
-
-// Menampilkan menu saat perintah /menu diterima
-bot.onText(/\/menu/, (msg) => {
-    bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
-});
-
 // Penanganan callback_query
 bot.on("callback_query", (query) => {
     const chatId = query.message.chat.id;
