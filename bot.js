@@ -72,16 +72,16 @@ bot.onText(/\/history/, (msg) => {
     }
 
     // Buat daftar tombol untuk setiap riwayat
-    let options = {
-        reply_markup: {
-            inline_keyboard: history.map((record, index) => [
-                [{ 
-                    text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
-                    callback_data: `history_${index}`
-                }]
-            ])
-        }
-    };
+    const options = {
+    reply_markup: {
+        inline_keyboard: history.map((record, index) => [
+            {
+                text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
+                callback_data: `history_${index}`
+            }
+        ])
+    }
+};
 
     bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
 });
