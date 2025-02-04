@@ -24,7 +24,7 @@ bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
 });
 
-// 🔹 MENYIMPAN RIWAYAT SERIAL NUMBER (Tanpa menampilkan menu setiap kali)
+// 📌 Fungsi untuk mengambil serial secara berurutan dari angka awal hingga akhir
 bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const start = parseInt(match[1]);
@@ -37,6 +37,41 @@ bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     let serials = [];
     for (let i = start; i <= end; i++) {
         serials.push(i);
+    }
+
+    // Simpan ke riwayat
+    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
+    history.push(record);
+
+    // Kirim hasil tanpa menu
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
+});
+
+// 📌 Fungsi untuk mengambil serial berdasarkan input manual (dengan prefix)
+bot.onText(/\/sn (.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const inputSerials = match[1].split(",").map(num => num.trim()); // Pisahkan angka dengan koma
+    let serials = [];
+
+    if (inputSerials.length === 0) {
+        return bot.sendMessage(chatId, "⚠️ Mohon masukkan angka yang valid!");
+    }
+
+    // Angka pertama dianggap sebagai "prefix" jika cukup panjang
+    let prefix = inputSerials[0].length > 4 ? inputSerials[0].slice(0, -4) : "";
+
+    inputSerials.forEach(num => {
+        if (num.length <= 4 && prefix) {
+            // Jika angka hanya 4 digit, tambahkan prefix
+            serials.push(`${prefix}${num.padStart(4, "0")}`);
+        } else {
+            // Jika sudah nomor lengkap, langsung masukkan
+            serials.push(num);
+        }
+    });
+
+    if (serials.length > 50) {
+        return bot.sendMessage(chatId, "⚠️ Maksimal hanya bisa 50 angka!");
     }
 
     // Simpan ke riwayat
