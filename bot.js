@@ -18,56 +18,51 @@ const mainMenu = {
     }
 };
 
+// 🔹 Menampilkan menu saat diminta
 bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
 });
 
-// 📌 Perintah untuk mendapatkan serial secara berurutan
-bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
-    const chatId = msg.chat.id;
-    const start = parseInt(match[1]);
-    const end = parseInt(match[2]);
-
-    if (end - start > 100) {
-        return bot.sendMessage(chatId, "⚠️ Batas maksimum hanya 100 angka!");
-    }
-
-    let serials = [];
-    for (let i = start; i <= end; i++) {
-        serials.push(i.toString());
-    }
-
-    // Simpan ke riwayat
-    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
-    history.push(record);
-
-    // Kirim hasil
-    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
-});
-
-// 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
+// 📌 Perintah untuk mendapatkan serial (Bisa Rentang atau Manual)
 bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const inputSerials = match[1].split(",").map(num => num.trim());
+    const input = match[1].trim();
+
     let serials = [];
 
-    if (inputSerials.length === 0) {
-        return bot.sendMessage(chatId, "⚠️ Mohon masukkan angka yang valid!");
-    }
+    // Jika input adalah dua angka (range)
+    const rangeMatch = input.match(/^(\d+)\s+(\d+)$/);
+    if (rangeMatch) {
+        const start = parseInt(rangeMatch[1]);
+        const end = parseInt(rangeMatch[2]);
 
-    // Angka pertama dianggap sebagai "prefix" jika cukup panjang
-    let prefix = inputSerials[0].length > 4 ? inputSerials[0].slice(0, -4) : "";
-
-    inputSerials.forEach(num => {
-        if (num.length <= 4 && prefix) {
-            serials.push(`${prefix}${num.padStart(4, "0")}`);
-        } else {
-            serials.push(num);
+        if (end - start > 100) {
+            return bot.sendMessage(chatId, "⚠️ Batas maksimum hanya 100 angka!");
         }
-    });
 
-    if (serials.length > 50) {
-        return bot.sendMessage(chatId, "⚠️ Maksimal hanya bisa 50 angka!");
+        for (let i = start; i <= end; i++) {
+            serials.push(i.toString());
+        }
+    } else {
+        // Jika input adalah angka manual (dengan prefix)
+        const inputSerials = input.split(",").map(num => num.trim());
+        if (inputSerials.length === 0) {
+            return bot.sendMessage(chatId, "⚠️ Mohon masukkan angka yang valid!");
+        }
+
+        let prefix = inputSerials[0].length > 4 ? inputSerials[0].slice(0, -4) : "";
+
+        inputSerials.forEach(num => {
+            if (num.length <= 4 && prefix) {
+                serials.push(`${prefix}${num.padStart(4, "0")}`);
+            } else {
+                serials.push(num);
+            }
+        });
+
+        if (serials.length > 50) {
+            return bot.sendMessage(chatId, "⚠️ Maksimal hanya bisa 50 angka!");
+        }
     }
 
     // Simpan ke riwayat
@@ -89,12 +84,13 @@ bot.onText(/\/history/, (msg) => {
     // Buat daftar tombol untuk setiap riwayat
     let options = {
         reply_markup: {
-            inline_keyboard: history.map((record, index) => [
-                [{ 
+            inline_keyboard: history.map((record, index) => {
+                if (record.serials.length === 0) return []; // Hindari error jika kosong
+                return [{
                     text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
                     callback_data: `history_${index}`
-                }]
-            ])
+                }];
+            }).filter(row => row.length > 0) // Hapus baris kosong untuk menghindari error
         }
     };
 
@@ -124,3 +120,5 @@ function formatDate(dateString) {
     return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)} ` +
            `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
 }
+
+console.log("🤖 Bot sedang berjalan...");
