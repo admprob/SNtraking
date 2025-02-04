@@ -43,7 +43,8 @@ bot.onText(/\/serial (\d+) (\d+)/, (msg, match) => {
     const record = { user: msg.from.username, date: new Date().toISOString(), serials };
     history.push(record);
 
-    bot.sendMessage(chatId, "✅ Data berhasil disimpan:\n" + serials.join("\n"), mainMenu);
+    // Kirim hasil dalam format menurun (vertikal)
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`, mainMenu);
 });
 
 // MENAMPILKAN RIWAYAT
