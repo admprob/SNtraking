@@ -12,8 +12,8 @@ bot.onText(/\/serial (\d+) (\d+)/, (msg, match) => {
     const start = parseInt(match[1]);
     const end = parseInt(match[2]);
 
-    if (end - start > 50) { // Batas agar tidak terlalu banyak data
-        return bot.sendMessage(msg.chat.id, "Batas maksimum hanya 50 angka!");
+    if (end - start > 100) { // Batas agar tidak terlalu banyak data
+        return bot.sendMessage(msg.chat.id, "Batas maksimum hanya 100 angka!");
     }
 
     let serials = [];
