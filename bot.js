@@ -71,26 +71,6 @@ bot.onText(/\/history/, (msg) => {
     if (history.length === 0) {
         return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
     }
-// MENGELOLA EKSPOR KE CSV
-bot.onText(/📤 Mengekspor Riwayat ke CSV/, (msg) => {
-    const chatId = msg.chat.id;
-    
-    if (history.length === 0) {
-        return bot.sendMessage(chatId, "Tidak ada data untuk diekspor.");
-    }
-
-    const csvData = "Tanggal,User,Serial Number\n" +
-        history.map(h => `${h.date},${h.user},"${h.serials.join(" ")}"`).join("\n");
-
-    const filePath = "history.csv";
-    fs.writeFileSync(filePath, csvData);
-
-    bot.sendDocument(chatId, filePath);
-});
-
-
-    
-
     // Buat daftar tombol untuk setiap riwayat
     const options = {
     reply_markup: {
