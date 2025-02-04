@@ -22,7 +22,7 @@ bot.onText(/\/menu/, (msg) => {
     bot.sendMessage(msg.chat.id, "🔹 Pilih menu di bawah:", mainMenu);
 });
 
-// 🔹 Fungsi untuk mengambil serial berurutan
+// 📌 Perintah untuk mendapatkan serial secara berurutan
 bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const start = parseInt(match[1]);
@@ -37,100 +37,90 @@ bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
         serials.push(i.toString());
     }
 
-    saveHistory(msg.from.username, serials);
+    // Simpan ke riwayat
+    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
+    history.push(record);
+
+    // Kirim hasil
     bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
-// 🔹 Fungsi untuk mengambil serial dengan prefix
+// 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
 bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const inputSerials = match[1].split(",").map(num => num.trim());
     let serials = [];
-    
+
     if (inputSerials.length === 0) {
         return bot.sendMessage(chatId, "⚠️ Mohon masukkan angka yang valid!");
     }
 
+    // Angka pertama dianggap sebagai "prefix" jika cukup panjang
     let prefix = inputSerials[0].length > 4 ? inputSerials[0].slice(0, -4) : "";
+
     inputSerials.forEach(num => {
-        serials.push(num.length <= 4 && prefix ? `${prefix}${num.padStart(4, "0")}` : num);
+        if (num.length <= 4 && prefix) {
+            serials.push(`${prefix}${num.padStart(4, "0")}`);
+        } else {
+            serials.push(num);
+        }
     });
 
     if (serials.length > 50) {
         return bot.sendMessage(chatId, "⚠️ Maksimal hanya bisa 50 angka!");
     }
 
-    saveHistory(msg.from.username, serials);
+    // Simpan ke riwayat
+    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
+    history.push(record);
+
+    // Kirim hasil
     bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
-// 🔹 Fungsi untuk menyimpan riwayat
-function saveHistory(user, serials) {
-    const record = { user, date: new Date().toISOString(), serials };
-    history.push(record);
-}
+// 📌 Perintah untuk melihat daftar riwayat
+bot.onText(/\/history/, (msg) => {
+    const chatId = msg.chat.id;
 
-// 🔹 Menampilkan riwayat sebagai tombol interaktif
+    if (history.length === 0) {
+        return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
+    }
+
+    // Buat daftar tombol untuk setiap riwayat
+    let options = {
+        reply_markup: {
+            inline_keyboard: history.map((record, index) => [
+                [{ 
+                    text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
+                    callback_data: `history_${index}`
+                }]
+            ])
+        }
+    };
+
+    bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
+});
+
+// 📌 Fungsi untuk menampilkan detail saat tombol riwayat ditekan
 bot.on("callback_query", (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
-
-    if (data === "view_history") {
-        if (history.length === 0) return bot.sendMessage(chatId, "⚠️ Belum ada riwayat.");
-
-        let options = {
-            reply_markup: {
-                inline_keyboard: history.map((h, index) => [
-                    [{ text: `📌 ${h.serials[0]} → ${h.serials[h.serials.length - 1]} (🕒 ${formatDate(h.date)})`, callback_data: `history_${index}` }]
-                ])
-            }
-        };
-        bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
-    }
 
     if (data.startsWith("history_")) {
         const index = parseInt(data.split("_")[1]);
         if (history[index]) {
             const record = history[index];
-            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${record.serials.join("\n")}`);
+            const serialsList = record.serials.join("\n");
+            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${serialsList}`);
+        } else {
+            bot.sendMessage(chatId, "⚠️ Riwayat tidak ditemukan.");
         }
     }
-
-    if (data === "export_csv") {
-        if (history.length === 0) return bot.sendMessage(chatId, "⚠️ Tidak ada data untuk diekspor.");
-        
-        const csvData = "Tanggal,User,Serial Number\n" +
-            history.map(h => `${h.date},${h.user},"${h.serials.join(" ")}"`).join("\n");
-        
-        const filePath = "history.csv";
-        fs.writeFileSync(filePath, csvData);
-        bot.sendDocument(chatId, filePath, {}, { filename: "history.csv" });
-    }
-
-    if (data === "filter_by_date") {
-        bot.sendMessage(chatId, "📅 Masukkan tanggal dalam format **YYYY-MM-DD**, contoh: `/filter 2025-02-04`");
-    }
 });
 
-// 🔹 Filter riwayat berdasarkan tanggal
-bot.onText(/\/filter (\d{4}-\d{2}-\d{2})/, (msg, match) => {
-    const chatId = msg.chat.id;
-    const selectedDate = match[1];
-
-    const filtered = history.filter(h => h.date.startsWith(selectedDate));
-    if (filtered.length === 0) return bot.sendMessage(chatId, `❌ Tidak ada riwayat untuk tanggal ${selectedDate}`);
-
-    let message = `📅 **Riwayat untuk ${selectedDate}:**\n`;
-    filtered.forEach((h, index) => {
-        message += `\n${index + 1}. 👤 User: ${h.user}\n🔢 Serial:\n${h.serials.join("\n")}\n`;
-    });
-    bot.sendMessage(chatId, message);
-});
-
+// 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
 function formatDate(dateString) {
     const date = new Date(dateString);
     return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)} ` +
            `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
 }
-
-console.log("🤖 Bot sedang berjalan...");
