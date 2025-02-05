@@ -1,4 +1,4 @@
- const TelegramBot = require("node-telegram-bot-api");
+const TelegramBot = require("node-telegram-bot-api");
 const fs = require('fs'); // Untuk ekspor CSV
 require("dotenv").config();
 
@@ -28,7 +28,7 @@ bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     history.push(record);
 
     // Kirim hasil
-    bot.sendMessage(chatId, ✅ **Serial Number:**\n${serials.join("\n")});
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
 // 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
@@ -46,7 +46,7 @@ bot.onText(/\/serial (.+)/, (msg, match) => {
 
     inputSerials.forEach(num => {
         if (num.length <= 4 && prefix) {
-            serials.push(${prefix}${num.padStart(4, "0")});
+            serials.push(`${prefix}${num.padStart(4, "0")}`);
         } else {
             serials.push(num);
         }
@@ -61,7 +61,7 @@ bot.onText(/\/serial (.+)/, (msg, match) => {
     history.push(record);
 
     // Kirim hasil
-    bot.sendMessage(chatId, ✅ **Serial Number:**\n${serials.join("\n")});
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
 // 📌 Perintah untuk melihat daftar riwayat
@@ -71,17 +71,18 @@ bot.onText(/\/history/, (msg) => {
     if (history.length === 0) {
         return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
     }
+
     // Buat daftar tombol untuk setiap riwayat
     const options = {
-    reply_markup: {
-        inline_keyboard: history.map((record, index) => [
-            {
-                text: 📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)}),
-                callback_data: history_${index}
-            }
-        ])
-    }
-};
+        reply_markup: {
+            inline_keyboard: history.map((record, index) => [
+                {
+                    text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
+                    callback_data: `history_${index}`
+                }
+            ])
+        }
+    };
 
     bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
 });
@@ -96,7 +97,7 @@ bot.on("callback_query", (query) => {
         if (history[index]) {
             const record = history[index];
             const serialsList = record.serials.join("\n");
-            bot.sendMessage(chatId, ✅ **Detail Serial Number:**\n${serialsList});
+            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${serialsList}`);
         } else {
             bot.sendMessage(chatId, "⚠️ Riwayat tidak ditemukan.");
         }
@@ -132,6 +133,6 @@ function formatHistory(histories) {
 // 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return ${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}  +
-           ${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)};
+    return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)} ` +
+           `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
 }
