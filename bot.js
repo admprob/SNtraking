@@ -103,6 +103,32 @@ bot.on("callback_query", (query) => {
     }
 });
 
+// 📌 Fungsi untuk mengelompokkan riwayat berdasarkan tanggal
+function formatHistory(histories) {
+    let result = "";
+    let currentDate = new Date().toISOString().split("T")[0]; // Tanggal hari ini
+    let groupedByDate = {};
+
+    histories.forEach(({ date, serials }) => {
+        let recordDate = date.split("T")[0]; // Ambil bagian tanggal saja
+        let time = date.split("T")[1].split(".")[0]; // Ambil jam, menit, detik
+
+        if (!groupedByDate[recordDate]) {
+            groupedByDate[recordDate] = [];
+        }
+        groupedByDate[recordDate].push(`📌 ${serials[0]} → ${serials[serials.length - 1]} (🕒 ${time})`);
+    });
+
+    Object.keys(groupedByDate).forEach((date) => {
+        if (date !== currentDate) {
+            result += `🗓 ${date}\n`; // Tambahkan tanggal jika beda hari
+        }
+        result += groupedByDate[date].join("\n") + "\n";
+    });
+
+    return result.trim();
+}
+
 // 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
 function formatDate(dateString) {
     const date = new Date(dateString);
