@@ -1,5 +1,5 @@
 const TelegramBot = require("node-telegram-bot-api");
-const fs = require('fs'); // Untuk ekspor CSV
+const fs = require("fs"); // Untuk ekspor CSV
 require("dotenv").config();
 
 // Gantilah dengan token bot Anda
@@ -64,44 +64,44 @@ bot.onText(/\/serial (.+)/, (msg, match) => {
     bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
-// 📌 Perintah untuk melihat daftar riwayat
+// 📌 Perintah untuk melihat daftar riwayat (DIPERBARUI)
 bot.onText(/\/history/, (msg) => {
     const chatId = msg.chat.id;
 
     if (history.length === 0) {
         return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
     }
-    // Buat daftar tombol untuk setiap riwayat
-    const options = {
-    reply_markup: {
-        inline_keyboard: history.map((record, index) => [
-            {
-                text: `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)})`,
-                callback_data: `history_${index}`
-            }
-        ])
-    }
-};
 
-    bot.sendMessage(chatId, "📜 **Riwayat Serial Number:**", options);
+    // Gunakan format yang sudah diringkas berdasarkan tanggal
+    const historySummary = formatHistory(history);
+    bot.sendMessage(chatId, `📜 **Riwayat Serial Number:**\n${historySummary}`);
 });
 
-// 📌 Fungsi untuk menampilkan detail saat tombol riwayat ditekan
-bot.on("callback_query", (query) => {
-    const chatId = query.message.chat.id;
-    const data = query.data;
+// 📌 Fungsi untuk mengelompokkan riwayat berdasarkan tanggal
+function formatHistory(histories) {
+    let result = "";
+    let currentDate = new Date().toISOString().split("T")[0]; // Tanggal hari ini
+    let groupedByDate = {};
 
-    if (data.startsWith("history_")) {
-        const index = parseInt(data.split("_")[1]);
-        if (history[index]) {
-            const record = history[index];
-            const serialsList = record.serials.join("\n");
-            bot.sendMessage(chatId, `✅ **Detail Serial Number:**\n${serialsList}`);
-        } else {
-            bot.sendMessage(chatId, "⚠️ Riwayat tidak ditemukan.");
+    histories.forEach(({ date, serials }) => {
+        let recordDate = date.split("T")[0]; // Ambil bagian tanggal saja
+        let time = date.split("T")[1].split(".")[0]; // Ambil jam, menit, detik
+
+        if (!groupedByDate[recordDate]) {
+            groupedByDate[recordDate] = [];
         }
-    }
-});
+        groupedByDate[recordDate].push(`📌 ${serials[0]} → ${serials[serials.length - 1]} (🕒 ${time})`);
+    });
+
+    Object.keys(groupedByDate).forEach((date) => {
+        if (date !== currentDate) {
+            result += `🗓 ${date}\n`; // Tambahkan tanggal jika beda hari
+        }
+        result += groupedByDate[date].join("\n") + "\n";
+    });
+
+    return result.trim();
+}
 
 // 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
 function formatDate(dateString) {
