@@ -71,6 +71,18 @@ bot.onText(/\/history/, (msg) => {
     if (history.length === 0) {
         return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
     }
+// Buat daftar tombol untuk setiap riwayat
+    const options = {
+    reply_markup: {
+        inline_keyboard: history.map((record, index) => [
+            {
+                text: 📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatDate(record.date)}),
+                callback_data: history_${index}
+            }
+        ])
+    }
+};
+    
 
     // Gunakan format yang sudah diringkas berdasarkan tanggal
     const historySummary = formatHistory(history);
