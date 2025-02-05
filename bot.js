@@ -1,57 +1,111 @@
-// Fungsi untuk memformat tanggal
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`;
-}
+const TelegramBot = require("node-telegram-bot-api");
+const fs = require("fs"); // Untuk ekspor CSV
+require("dotenv").config();
 
-// Fungsi untuk memformat waktu
-function formatTime(dateString) {
-    const date = new Date(dateString);
-    return `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
-}
+// Gantilah dengan token bot Anda
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const bot = new TelegramBot(token, { polling: true });
 
-// Fungsi untuk menampilkan riwayat yang diringkas
-function displayHistory(chatId) {
+const history = []; // Menyimpan riwayat permintaan pengguna
+
+// 📌 Perintah untuk mendapatkan serial secara berurutan
+bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const start = parseInt(match[1]);
+    const end = parseInt(match[2]);
+
+    if (end - start > 100) {
+        return bot.sendMessage(chatId, "⚠️ Batas maksimum hanya 100 angka!");
+    }
+
+    let serials = [];
+    for (let i = start; i <= end; i++) {
+        serials.push(i.toString());
+    }
+
+    // Simpan ke riwayat
+    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
+    history.push(record);
+
+    // Kirim hasil
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
+});
+
+// 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
+bot.onText(/\/serial (.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const inputSerials = match[1].split(",").map(num => num.trim());
+    let serials = [];
+
+    if (inputSerials.length === 0) {
+        return bot.sendMessage(chatId, "⚠️ Mohon masukkan angka yang valid!");
+    }
+
+    // Angka pertama dianggap sebagai "prefix" jika cukup panjang
+    let prefix = inputSerials[0].length > 4 ? inputSerials[0].slice(0, -4) : "";
+
+    inputSerials.forEach(num => {
+        if (num.length <= 4 && prefix) {
+            serials.push(`${prefix}${num.padStart(4, "0")}`);
+        } else {
+            serials.push(num);
+        }
+    });
+
+    if (serials.length > 50) {
+        return bot.sendMessage(chatId, "⚠️ Maksimal hanya bisa 50 angka!");
+    }
+
+    // Simpan ke riwayat
+    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
+    history.push(record);
+
+    // Kirim hasil
+    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
+});
+
+// 📌 Perintah untuk melihat daftar riwayat (DIPERBARUI)
+bot.onText(/\/history/, (msg) => {
+    const chatId = msg.chat.id;
+
     if (history.length === 0) {
         return bot.sendMessage(chatId, "📌 Belum ada riwayat tersedia.");
     }
 
-    // Dapatkan tanggal hari ini
-    const today = formatDate(new Date().toISOString());
+    // Gunakan format yang sudah diringkas berdasarkan tanggal
+    const historySummary = formatHistory(history);
+    bot.sendMessage(chatId, `📜 **Riwayat Serial Number:**\n${historySummary}`);
+});
 
-    // Kelompokkan riwayat berdasarkan tanggal
-    const groupedHistory = history.reduce((acc, record) => {
-        const recordDate = formatDate(record.date);
-        if (!acc[recordDate]) {
-            acc[recordDate] = [];
+// 📌 Fungsi untuk mengelompokkan riwayat berdasarkan tanggal
+function formatHistory(histories) {
+    let result = "";
+    let currentDate = new Date().toISOString().split("T")[0]; // Tanggal hari ini
+    let groupedByDate = {};
+
+    histories.forEach(({ date, serials }) => {
+        let recordDate = date.split("T")[0]; // Ambil bagian tanggal saja
+        let time = date.split("T")[1].split(".")[0]; // Ambil jam, menit, detik
+
+        if (!groupedByDate[recordDate]) {
+            groupedByDate[recordDate] = [];
         }
-        acc[recordDate].push(record);
-        return acc;
-    }, {});
+        groupedByDate[recordDate].push(`📌 ${serials[0]} → ${serials[serials.length - 1]} (🕒 ${time})`);
+    });
 
-    // Buat pesan riwayat
-    let historyMessage = "📜 **Riwayat Serial Number:**\n\n";
-    for (const [date, records] of Object.entries(groupedHistory)) {
-        if (date === today) {
-            // Tampilkan entri untuk hari ini dengan waktu
-            records.forEach(record => {
-                historyMessage += `📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]} (🕒 ${formatTime(record.date)})\n`;
-            });
-        } else {
-            // Tampilkan entri untuk tanggal lain
-            historyMessage += `📅 **${date}**\n`;
-            records.forEach(record => {
-                historyMessage += `    📌 ${record.serials[0]} → ${record.serials[record.serials.length - 1]}\n`;
-            });
+    Object.keys(groupedByDate).forEach((date) => {
+        if (date !== currentDate) {
+            result += `🗓 ${date}\n`; // Tambahkan tanggal jika beda hari
         }
-        historyMessage += "\n";
-    }
+        result += groupedByDate[date].join("\n") + "\n";
+    });
 
-    bot.sendMessage(chatId, historyMessage);
+    return result.trim();
 }
 
-// Contoh penggunaan dalam perintah /history
-bot.onText(/\/history/, (msg) => {
-    const chatId = msg.chat.id;
-    displayHistory(chatId);
-});
+// 📌 Fungsi untuk memformat tanggal agar lebih mudah dibaca
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)} ` +
+           `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}:${("0" + date.getSeconds()).slice(-2)}`;
+}
