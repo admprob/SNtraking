@@ -32,7 +32,7 @@ bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
 });
 
 // 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
-bot.onText(/\/serial (.+)/, (msg, match) => {
+bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const inputSerials = match[1].split(",").map(num => num.trim());
     let serials = [];
