@@ -31,29 +31,6 @@ bot.onText(/\/sn (\d+) (\d+)/, (msg, match) => {
     bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
 });
 
-// 📌 Perintah untuk mendapatkan serial box secara berurutan
-bot.onText(/\/box (\d+) (\d+)/, (msg, match) => {
-    const chatId = msg.chat.id;
-    const start = parseInt(match[1]);
-    const end = parseInt(match[2]);
-
-    if (end - start > 400) {
-        return bot.sendMessage(chatId, "⚠️ Batas maksimum hanya 100 angka!");
-    }
-
-    let serials = [];
-    for (let i = start; i <= end; i++) {
-        serials.push(i.toString());
-    }
-
-    // Simpan ke riwayat
-    const record = { user: msg.from.username, date: new Date().toISOString(), serials };
-    history.push(record);
-
-    // Kirim hasil
-    bot.sendMessage(chatId, `✅ **Serial Number:**\n${serials.join("\n")}`);
-});
-
 // 📌 Perintah untuk mendapatkan serial berdasarkan input manual (dengan prefix)
 bot.onText(/\/sn (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
